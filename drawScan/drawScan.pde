@@ -1,3 +1,5 @@
+import controlP5.*;
+
 /**
  * Loading Tabular Data
  * by Daniel Shiffman.  
@@ -8,13 +10,9 @@
  *
  * Here is what the CSV looks like:
  *
- x,y,diameter,name
- 160,103,43.19838,Happy
- 372,137,52.42526,Sad
- 273,235,61.14072,Joyous
- 121,179,44.758068,Melancholy
  */
 
+ControlP5 cp5;
 // An Array of Bubble objects
 IntList all_x;
 IntList all_y;
@@ -24,58 +22,72 @@ Table table;
 int countVal;
 int mult;
 
+int decalX_pair;
+int decalX_impair;
+float sizeX_pair;
+float sizeX_impair;
+boolean colorize_line;
 
+int contrast_min;
+int contrast_max;
+
+PGraphics scan;
 
 void setup() {
-  size(800, 800);
-  noStroke();
+  size(800, 800, P2D);
+  
   all_x = new IntList();
   all_y = new IntList();
   all_val = new IntList();
-  mult = 2;
+  mult = 1;
+
+  colorize_line=true;
 
   loadData();
-  /*
-  countVal = 0;
-   for (int x = 0 ; x < all_x.size() ; x++){
-   for(int y = 0 ; y < all_y.size() ; y++){
-   fill(all_val.get(countVal));
-   rect(all_x.get(x),all_y.get(y),mult,mult);
-   countVal++;
-   }
-   }*/
+  scan = createGraphics(297,420);
+  scan.noStroke();
+  cp5 = new ControlP5(this);
+  ui();
 }
 
 void draw() {
+  scan.beginDraw();
+  scan.clear();
+  scan.noStroke();
   int rowCount = 0;
   for (TableRow row : table.rows()) {
-    // You can access the fields via their column name (or index)
-    /*
-    all_x.append(row.getInt("x"));
-     all_y.append(row.getInt("y"));
-     all_val.append(row.getInt("value"));
-     // Make a Bubble object out of the data read
-     */
+    
     int x = row.getInt("x");
     int y = row.getInt("y");
     int val = row.getInt("value");
 
-    float mapped_val = map(val, 160, 180, 0, 255);
+    float mapped_val = map(val, contrast_min, contrast_max, 0, 255);
     //float mapped_val = val
     if (y % 2 == 0) {
-      x-=12;
-      fill(mapped_val, 0, 0); //R
-      fill(mapped_val);
+      x*=sizeX_pair;
+      x+=decalX_pair;
+      if (colorize_line) {
+        
+        scan.fill(mapped_val, 0, 0); //R
+      } else {
+        scan.fill(mapped_val);
+      }
     } else {
-      x+=11;
-      fill(0, 0, mapped_val); //V
-      fill(mapped_val);
+      x*=sizeX_impair;
+      x+=decalX_impair;
+      if (colorize_line) {
+        scan.fill(0, 0, mapped_val); //V
+      } else {
+        scan.fill(mapped_val);
+      }
     }
 
-    rect(x*mult, y*mult, mult, mult);
+    scan.rect(x*mult, y*mult, mult, mult);
 
     rowCount++;
   }
+  scan.endDraw();
+  image(scan,0,0,scan.width*2,scan.height*2);
 }
 
 
