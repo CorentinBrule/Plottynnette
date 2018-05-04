@@ -1,5 +1,11 @@
 import controlP5.*;
 
+import oscP5.*;
+import netP5.*;
+
+OscP5 oscP5;
+NetAddress myRemoteLocation;
+
 /**
  * Loading Tabular Data
  * by Daniel Shiffman.  
@@ -32,10 +38,14 @@ int contrast_min;
 int contrast_max;
 
 PGraphics scan;
+PGraphics pair;
+PGraphics impair;
 
 void setup() {
   size(800, 800, P2D);
-  
+  oscP5 = new OscP5(this, 12000);
+  myRemoteLocation = new NetAddress("127.0.0.1", 12000);
+
   all_x = new IntList();
   all_y = new IntList();
   all_val = new IntList();
@@ -44,19 +54,25 @@ void setup() {
   colorize_line=true;
 
   loadData();
-  scan = createGraphics(297,420);
+  //createData();
+  scan = createGraphics(297, 420);
+  pair = createGraphics(297, 420);
+  impair = createGraphics(297, 420);
   scan.noStroke();
   cp5 = new ControlP5(this);
   ui();
 }
 
 void draw() {
-  scan.beginDraw();
-  scan.clear();
-  scan.noStroke();
+  pair.beginDraw();
+  pair.clear();
+  pair.noStroke();
+  impair.beginDraw();
+  impair.clear();
+  impair.noStroke();
   int rowCount = 0;
   for (TableRow row : table.rows()) {
-    
+
     int x = row.getInt("x");
     int y = row.getInt("y");
     int val = row.getInt("value");
@@ -64,30 +80,37 @@ void draw() {
     float mapped_val = map(val, contrast_min, contrast_max, 0, 255);
     //float mapped_val = val
     if (y % 2 == 0) {
-      x*=sizeX_pair;
-      x+=decalX_pair;
+      //x*=sizeX_pair;
+      //x+=decalX_pair;
       if (colorize_line) {
-        
-        scan.fill(mapped_val, 0, 0); //R
+        pair.fill(mapped_val, 0, 0); //R
       } else {
-        scan.fill(mapped_val);
+        pair.fill(mapped_val);
       }
+      pair.rect(x*mult, y*mult, mult, mult);
     } else {
-      x*=sizeX_impair;
-      x+=decalX_impair;
+      //x*=sizeX_impair;
+      //x+=decalX_impair;
       if (colorize_line) {
-        scan.fill(0, 0, mapped_val); //V
+        impair.fill(0, 0, mapped_val); //B
       } else {
-        scan.fill(mapped_val);
+        impair.fill(mapped_val);
       }
+      impair.rect(x*mult, y*mult, mult, mult);
     }
 
-    scan.rect(x*mult, y*mult, mult, mult);
+
 
     rowCount++;
   }
+  pair.endDraw();
+  impair.endDraw();
+  scan.beginDraw();
+  scan.clear();
+  scan.image(pair, decalX_pair*mult, 0, pair.width*sizeX_pair, pair.height);
+  scan.image(impair, decalX_impair*mult, 0, impair.width*sizeX_impair, impair.height);
   scan.endDraw();
-  image(scan,0,0,scan.width*2,scan.height*2);
+  image(scan, 0, 0, scan.width*2, scan.height*2);
 }
 
 
@@ -98,4 +121,24 @@ void loadData() {
 
   // The size of the array of Bubble objects is determined by the total number of rows in the CSV
   // You can access iterate over all the rows in a table
+}
+
+void createData() {
+
+  table = new Table();
+  table.addColumn("x", Table.INT);
+  table.addColumn("y", Table.INT);
+  table.addColumn("value", Table.INT);
+}
+
+void oscEvent(OscMessage oscMessage) {
+  /* print the address pattern and the typetag of the received OscMessage */
+  TableRow newRow = table.addRow();
+  int x = oscMessage.get(0).intValue();
+  int y = oscMessage.get(1).intValue();
+  int value = oscMessage.get(2).intValue();
+  newRow.setInt("x", x);
+  newRow.setInt("y", y);
+  newRow.setInt("value", value);
+  println(x, y, value);
 }
